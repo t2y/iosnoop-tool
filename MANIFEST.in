@@ -1,0 +1,8 @@
+include *.ini
+include *.md
+include *.py
+include *.rst
+include LICENSE
+include MANIFEST.in
+recursive-include iosnoop *.py
+recursive-include tests *.py *.png *.log
