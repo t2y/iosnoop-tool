@@ -5,7 +5,7 @@ import logging
 from .consts import PLOT_TYPES, PLOT_TYPE_HEATMAP
 from .consts import SUB_COMMAND_CSV, SUB_COMMAND_PLOT
 from .csv import write_csv
-from .utils import get_logger
+from .utils import get_logger, parse_datetime
 
 __version__ = '0.1.0'
 _DATETIME_FORMAT_HELP = 'yyyymmddHHMISS'
@@ -18,6 +18,10 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
 )
 log = get_logger()
+
+
+def dt_type(s):
+    return parse_datetime(s)
 
 
 def figsize_type(s):
@@ -129,6 +133,7 @@ def parse_plot_argument(subparsers):
 def parse_argument():
     parser = argparse.ArgumentParser()
     parser.set_defaults(
+        basedate=None,
         data=None,
         # filter options
         columns=[],
@@ -139,6 +144,11 @@ def parse_argument():
         since=None,
         until=None,
         subcommand=None,
+    )
+    parser.add_argument(
+        '--basedate', action='store', type=dt_type,
+        help='set base datetime to convert kernel timestamp to localtime,'
+             ' format: %s' % _DATETIME_FORMAT_HELP
     )
     parser.add_argument(
         '--data', action='store', required=True,

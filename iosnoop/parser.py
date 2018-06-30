@@ -1,10 +1,11 @@
 import re
 from collections import defaultdict
+from datetime import timedelta
 
 from .consts import EXTRA_COLUMNS
 from .consts import PROCESS_ID, DISK_BLOCK, IO_SIZE, IO_LATENCY
 from .consts import START_TIME_STAMP, END_TIME_STAMP
-from .consts import START_TIME_STAMP_DIFF
+from .consts import START_TIME_STAMP_DIFF, START_LOCAL_TIME
 
 from .filters import get_filters
 from .utils import get_logger
@@ -32,12 +33,19 @@ class Parser:
 
     @property
     def columns(self):
-        return self._columns + EXTRA_COLUMNS
+        extra = EXTRA_COLUMNS.copy()
+        if self.args.basedate is None:
+            extra.remove(START_LOCAL_TIME)
+        return self._columns + extra
 
     def _get_time_diff(self, row):
         if self.first_row is None:
             return 0
         return row[START_TIME_STAMP] - self.first_row[START_TIME_STAMP]
+
+    def _get_local_time(self, row):
+        diff = row[START_TIME_STAMP_DIFF]
+        return self.args.basedate + timedelta(seconds=diff)
 
     def _parse(self, line):
         if line == '\n':
@@ -60,6 +68,8 @@ class Parser:
                 type_factory = _IOSNOOP_DATA_TYPE[col]
                 row[col] = type_factory(data[i])
             row[START_TIME_STAMP_DIFF] = self._get_time_diff(row)
+            if self.args.basedate is not None:
+                row[START_LOCAL_TIME] = self._get_local_time(row)
 
             if row:
                 if self.first_row is None:
