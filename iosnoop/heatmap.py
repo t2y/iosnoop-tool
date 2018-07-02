@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from functools import lru_cache
 
 import matplotlib.pyplot as plt
@@ -5,8 +6,8 @@ import pandas as pd
 import seaborn as sns
 
 from .consts import COMMAND, PROCESS_ID, IO_TYPE, DEVICE_ID
-from .consts import IO_LATENCY, START_TIME_STAMP_DIFF
-from .consts import LATENCY_BINS, TS_DIFF_BINS
+from .consts import IO_LATENCY, START_TIME_STAMP_DIFF, START_LOCAL_TIME
+from .consts import LATENCY_BINS, TS_DIFF_BINS, LOCAL_TIME_BINS
 from .utils import get_logger
 
 sns.set()
@@ -20,9 +21,15 @@ class HeatMap:
         self.df = df
         self.df[LATENCY_BINS] = pd.cut(
             self.df[IO_LATENCY], bins=self.io_latency_bins, right=False)
-        self.df[TS_DIFF_BINS] = pd.cut(
-            self.df[START_TIME_STAMP_DIFF],
-            bins=self.time_stamp_bins, right=False)
+
+        if self.args.basedate is None:
+            self.df[TS_DIFF_BINS] = pd.cut(
+                self.df[START_TIME_STAMP_DIFF],
+                bins=self.time_stamp_bins, right=False)
+        else:
+            self.df[LOCAL_TIME_BINS] = pd.cut(
+                self.df[START_LOCAL_TIME],
+                bins=self.local_time_bins, right=False)
 
         self.fig = plt.figure(figsize=self.figsize)
         self.fig.suptitle(self.subtitle)
@@ -91,12 +98,40 @@ class HeatMap:
         return pd.interval_range(
             start=0.0, end=max_diff + freq, freq=freq, closed='left')
 
+    @property
+    @lru_cache(1)
+    def max_local_time(self):
+        if self.args.x_max is not None:
+            x_max = timedelta(seconds=self.args.x_max)
+            return self.df[START_LOCAL_TIME][0] + x_max
+        return self.df[START_LOCAL_TIME].max()
+
+    @property
+    @lru_cache(1)
+    def local_time_bins(self):
+        max_time = self.max_local_time
+        log.info('maximum localtime: %s', max_time)
+        freq = timedelta(seconds=self.args.x_interval)
+        if self.args.basedate + freq > max_time:
+            interval = self.args.x_interval / 100
+            freq = timedelta(seconds=interval)
+        return pd.interval_range(
+            start=self.args.basedate, end=max_time + freq, freq=freq,
+            closed='left')
+
     def reshape_data(self, df):
+        if self.args.basedate is None:
+            columns_bins = TS_DIFF_BINS
+            columns = self.time_stamp_bins
+        else:
+            columns_bins = LOCAL_TIME_BINS
+            columns = self.local_time_bins
+
         pivot = df.pivot_table(
-            index=LATENCY_BINS, columns=TS_DIFF_BINS, values=IO_LATENCY,
+            index=LATENCY_BINS, columns=columns_bins, values=IO_LATENCY,
             aggfunc='count',
         ).reindex(
-            index=self.io_latency_bins, columns=self.time_stamp_bins,
+            index=self.io_latency_bins, columns=columns,
         )
         if self.args.verbose:
             print(pivot)
@@ -107,11 +142,29 @@ class HeatMap:
         text = label.get_text()
         return text.split(',')[0].replace('[', '')
 
+    @staticmethod
+    def simplify_local_time(label):
+        text = label.get_text()
+        time_str = text.split(',')[0].replace('[', '').split()
+        if len(time_str) == 1:
+            return '00:00:00'
+        else:
+            return time_str[1]
+
     def set_axes(self, ax, title=None):
         ax.invert_yaxis()
         ax.set_title(title)
-        ax.set_xlabel('time (second)')
-        ax.set_xticklabels(map(self.simplify_label, ax.get_xticklabels()))
+
+        xlabel = 'time (second)'
+        xticklabels = ax.get_xticklabels()
+        if self.args.basedate is None:
+            ax.set_xlabel(xlabel)
+            ax.set_xticklabels(map(self.simplify_label, xticklabels))
+        else:
+            date_str = datetime.strftime(self.args.basedate, '%Y-%m-%d')
+            ax.set_xlabel(xlabel + '\n%s' % date_str)
+            ax.set_xticklabels(map(self.simplify_local_time, xticklabels))
+
         ax.set_ylabel('latency (millisecond)')
         ax.set_yticklabels(map(self.simplify_label, ax.get_yticklabels()))
         ax.xaxis.set_label_coords(1.10, -0.05)

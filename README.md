@@ -83,7 +83,8 @@ Confirm `iosnoop-cli` works as below.
 
 ```bash
 (venv) $ iosnoop-cli --help
-usage: iosnoop-cli [-h] --data DATA [--columns COLUMNS [COLUMNS ...]]
+usage: iosnoop-cli [-h] [--basedate BASEDATE] --data DATA
+                   [--columns COLUMNS [COLUMNS ...]]
                    [--io-commands IO_COMMANDS [IO_COMMANDS ...]]
                    [--io-device IO_DEVICE] [--io-pids IO_PIDS [IO_PIDS ...]]
                    [--io-types IO_TYPES [IO_TYPES ...]] [--since SINCE]
@@ -95,6 +96,8 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --basedate BASEDATE   set base datetime to convert kernel timestamp to
+                        localtime, format: yyyymmddHHMISS
   --data DATA           set path to iosnoop output file
   --columns COLUMNS [COLUMNS ...]
                         set columns name in iosnoop output
@@ -179,6 +182,14 @@ This is sample heatmap rendered by seaborn.
 (venv) $ file tests/fixtures/iosnoop-sample.png
 tests/fixtures/iosnoop-sample.png: PNG image data, 1024 x 800, 8-bit/color RGBA, non-interlaced
 ```
+
+Specifying --basedate options converts kernel timestamp to localtime.
+
+```bash
+(vent) $ iosnoop-cli --basedate 20180702230100 --data tests/fixtures/iosnoop-sample.log plot --y-max 600 --y-interval 10 --fig-output tests/fixtures/iosnoop-sample-with-basedate.png
+```
+
+![](https://github.com/t2y/iosnoop-tool/raw/master/tests/fixtures/iosnoop-sample-with-basedate.png)
 
 ### Examples
 

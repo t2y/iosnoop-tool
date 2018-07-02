@@ -31,3 +31,4 @@ EXTRA_COLUMNS = [
 # dataframe bin columns
 LATENCY_BINS = 'latency_bins'
 TS_DIFF_BINS = 'ts_diff_bins'
+LOCAL_TIME_BINS = 'local_time_bins'
