@@ -45,7 +45,7 @@ def parse_csv_argument(subparsers):
     csv_parser = subparsers.add_parser(SUB_COMMAND_CSV)
     csv_parser.set_defaults(
         dialect='excel',
-        output='iosnoop.csv',
+        output=None,
         separator=_COMMA,
     )
     csv_parser.add_argument(
@@ -67,7 +67,7 @@ def parse_plot_argument(subparsers):
     plot_parser.set_defaults(
         backend='Agg',
         colormap='Reds',
-        figoutput='iosnoop.png',
+        figoutput=None,
         figsize=None,
         hspace=0.6,
         square=False,

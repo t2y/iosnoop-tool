@@ -2,17 +2,25 @@ import csv
 from contextlib import ContextDecorator
 
 from .parser import Parser
+from .utils import make_output_file
 
 
 class Writer(ContextDecorator):
 
     def __init__(self, args):
         self.args = args
-        self.f = open(args.output, 'w')
+        self.f = open(self.output, 'w')
         self.writer = csv.writer(
             self.f, dialect=args.dialect, delimiter=args.separator,
             quoting=csv.QUOTE_MINIMAL
         )
+
+    @property
+    def output(self):
+        output = self.args.output
+        if output is None:
+            output = make_output_file(self.args.data, 'csv')
+        return output
 
     def __enter__(self):
         return self

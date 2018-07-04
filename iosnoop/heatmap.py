@@ -8,7 +8,7 @@ import seaborn as sns
 from .consts import COMMAND, PROCESS_ID, IO_TYPE, DEVICE_ID
 from .consts import IO_LATENCY, START_TIME_STAMP_DIFF, START_LOCAL_TIME
 from .consts import LATENCY_BINS, TS_DIFF_BINS, LOCAL_TIME_BINS
-from .utils import get_logger
+from .utils import get_logger, make_output_file
 
 sns.set()
 log = get_logger()
@@ -33,6 +33,14 @@ class HeatMap:
 
         self.fig = plt.figure(figsize=self.figsize)
         self.fig.suptitle(self.subtitle)
+
+    @property
+    @lru_cache(1)
+    def output(self):
+        output = self.args.figoutput
+        if output is None:
+            output = make_output_file(self.args.data, 'png')
+        return output
 
     @property
     @lru_cache(1)
@@ -201,6 +209,6 @@ class HeatMap:
         self.generate_latency_heatmaps()
         plt.subplots_adjust(hspace=self.args.hspace)
         if self.args.backend == 'Agg':
-            self.fig.savefig(self.args.figoutput)
+            self.fig.savefig(self.output)
         else:
             plt.show()
